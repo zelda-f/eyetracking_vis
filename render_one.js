@@ -1,3 +1,5 @@
+// Renders gaze data for one participant when HOO is on the right side
+
 const width = 1536;
 const height = 864;
 const middle_x = width * 0.5 - 270;
@@ -33,13 +35,45 @@ stimuli.forEach(stimulus => {
     .attr("width", .35*width);});
 
 function drawHeatmap(data) {
+
+    const contours = d3.contourDensity()
+    .x(d => d.x)
+    .y(d => d.y)
+    .size([width, height])
+    .bandwidth(20)
+    .thresholds(10)
+    (data);
+
+    const color = d3.scaleSequential(d3.interpolateTurbo)
+        .domain(d3.extent(data, d => d.x))
+        .nice();
+
+    console.log("Contours:", contours);
+
+    svg.append("g")
+        .attr("fill", "none")
+        //.attr("stroke", color)
+        .attr("stroke", "black")
+        .attr("stroke-linejoin", "round")
+        .selectAll()
+        .data(contours)
+        .join("path")
+        .attr("stroke-width", (d, i) => i % 5 ? 0.25 : 1)
+        .attr("d", d3.geoPath())
+        .attr("fill", d => color(d.value));
+        //function(d) {
+        //     console.log(d);
+        //     console.log(color);
+        //     console.log(color(d.value));
+        // });
+
     svg.selectAll("circle")
         .data(data)
         .enter()
         .append("circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
-        .attr("r", 5)
+        .attr("r", 0)
         .attr("fill", d => {
             if (d.Hit_AOIs.length === 0) return "red";
             // Use the Last AOI if multiple are hit to get the most specific one
@@ -88,7 +122,7 @@ function drawLegend() {
 }
 
 // Load the data
-d3.csv("Gaze_data/WPI3_1b737573704s770_AOI_Hit.csv", d => {
+d3.csv("AOI_hit/WPI3_1b737573704s770_AOI_Hit.csv", d => {
     return {
         timestamp: +d.timestamp,
         x: +d.x,
@@ -103,3 +137,7 @@ d3.csv("Gaze_data/WPI3_1b737573704s770_AOI_Hit.csv", d => {
     console.log("Filtered data:", filtered);
     drawHeatmap(filtered);
 });
+
+// d3 contours
+// density estimation
+// d3.contourDensisity

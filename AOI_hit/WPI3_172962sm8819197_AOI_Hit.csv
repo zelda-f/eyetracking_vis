@@ -1,5 +1,4 @@
-
-,timestamp,x,y,Hit_AOIs,Problem_id,Trackloss,Participant
+index,timestamp,x,y,Hit_AOIs,Problem_id,Trackloss,Participant
 0,0.0004999999999881766,1125,468,,5_ISIC_L,no,WPI3_172962sm8819197
 1,0.05560000000150467,1125,468,,5_ISIC_L,no,WPI3_172962sm8819197
 2,0.06749999999999545,811,343,"Question,LOSide,LOO",5_ISIC_L,no,WPI3_172962sm8819197
