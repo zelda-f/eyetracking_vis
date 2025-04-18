@@ -16,23 +16,15 @@ const aoiColorScale = d3.scaleOrdinal()
     .domain(["HOSide", "HOO", "LOSide", "LOO"])
     .range(["purple", "blue", "orange", "green"]);
 
+    // Add stimuli images
+    const stimuli = [
+        { src: "stimuli/3.png", x: middle_x + 350, y: height * .2 },
+        { src: "stimuli/6.png", x: middle_x, y: height * .2 },
+        { src: "stimuli/9.png", x: middle_x - 350, y: height * .2 }, 
+        { src: "stimuli/add.png", x: middle_x - 175, y: height * .2 },
+        { src: "stimuli/div.png", x: middle_x + 175, y: height * .2 }
+    ];
 
-// Add stimuli images
-const stimuli = [
-    { src: "stimuli/3.png", x: middle_x + 350, y: height * .2 },
-    { src: "stimuli/6.png", x: middle_x, y: height * .2 },
-    { src: "stimuli/9.png", x: middle_x - 350, y: height * .2 }, 
-    { src: "stimuli/add.png", x: middle_x - 175, y: height * .2 },
-    { src: "stimuli/div.png", x: middle_x + 175, y: height * .2 }
-];
-
-stimuli.forEach(stimulus => {
-  svg.append("image")
-    .attr("xlink:href", stimulus.src)
-    .attr("x", stimulus.x)
-    .attr("y", stimulus.y)
-    .attr("height", .3*height)
-    .attr("width", .35*width);});
 
 function drawHeatmap(data) {
 
@@ -44,8 +36,8 @@ function drawHeatmap(data) {
     .thresholds(10)
     (data);
 
-    const color = d3.scaleSequential(d3.interpolateTurbo)
-        .domain(d3.extent(data, d => d.x))
+    const color = d3.scaleSequential(d3.interpolateRdBu)
+        .domain(d3.extent(contours, d => d.value))
         .nice();
 
     console.log("Contours:", contours);
@@ -60,12 +52,8 @@ function drawHeatmap(data) {
         .join("path")
         .attr("stroke-width", (d, i) => i % 5 ? 0.25 : 1)
         .attr("d", d3.geoPath())
-        .attr("fill", d => color(d.value));
-        //function(d) {
-        //     console.log(d);
-        //     console.log(color);
-        //     console.log(color(d.value));
-        // });
+        .attr("fill", d => color(d.value))
+        .attr("fill-opacity", 0.7);
 
     svg.selectAll("circle")
         .data(data)
@@ -81,9 +69,20 @@ function drawHeatmap(data) {
             return aoiColorScale(firstAOI) || "gray";
         })
         .attr("fill-opacity", 0.15);
-
-    drawLegend();
+      drawStimuli();
+    //drawLegend();
 }
+
+function drawStimuli() {
+    
+    stimuli.forEach(stimulus => {
+        svg.append("image")
+          .attr("xlink:href", stimulus.src)
+          .attr("x", stimulus.x)
+          .attr("y", stimulus.y)
+          .attr("height", .3*height)
+          .attr("width", .35*width);});
+    }
 
 function drawLegend() {
     const legend = svg.append("g")
@@ -137,6 +136,8 @@ d3.csv("AOI_hit/WPI3_1b737573704s770_AOI_Hit.csv", d => {
     console.log("Filtered data:", filtered);
     drawHeatmap(filtered);
 });
+
+node.exports = {drawHeatmap}
 
 // d3 contours
 // density estimation
