@@ -3,14 +3,23 @@
 
 // TODO -- create an update function that doesnt utilize the fetch functiona and simply updates the data in a filter function.
 
+var hello = "WPI3_r17296342184t21_AOI_Hit.csv"
+console.log(hello.replace("_AOI_Hit.csv", "").toLowerCase().replace("_", ""))
+
 const width = 600;
 const height = 300;
 const middle_x = width * 0.5 - 130;
+
+var file_names = [];
 
 // create dropdowns
 var selectedHOO = "R";
 var selectedS = "";
 var selectedC = "";
+var selectedInhi = "";
+var selectedWM = "";
+
+
 // HOO dropdown
 const HOO_options = ["R", "L"];
 d3.select("#HOO_button")
@@ -24,7 +33,7 @@ d3.select("#HOO_button")
 d3.select("#HOO_button").on("change", function(d){
   selectedHOO = d3.select(this).property("value"); // get the selected HOO from the drop down
   console.log("hoo changed to ", selectedHOO)
-  getFiles(selectedHOO);
+  filter();
 })
 
 // Spacing dropdown
@@ -38,7 +47,7 @@ d3.select("#S_button")
   .attr("value", function (d) { return d; });
 
 d3.select("#S_button").on("change", function(d){
-  var selectedS = function(e) {
+  selectedS = function(e) {
     var s = d3.select(this).property("value")
     if (s == S_options[0]) {
       return ""
@@ -54,8 +63,79 @@ d3.select("#S_button").on("change", function(d){
     }
   }; // get the selected HOO from the drop down
   console.log("S changed to ", selectedS)
-  filter(selectedHOO, selectedS, selectedC);
+  filter();
 })
+
+// Color Dropdown
+const C_options = ["No Color Filter", "Congruent Color", "Neutral Color", "Incongruent Color"]
+d3.select("#C_button")
+  .selectAll("C Options")
+  .data(C_options)
+  .enter()
+  .append("option")
+  .text(function (d) { return d; }) 
+  .attr("value", function (d) { return d; });
+
+d3.select("#C_button").on("change", function(d){
+  selectedC = function(e) {
+    var s = d3.select(this).property("value")
+    if (s == C_options[0]) {
+      return ""
+    }
+    if (s == C_options[1]) {
+      return "CC"
+    }
+    if (s == C_options[2]) {
+      return "NC"
+    }
+    else {
+      return "IC"
+    }
+  }; // get the selected HOO from the drop down
+  console.log("C changed to ", selectedC)
+  filter();
+})
+
+// Inhibition Dropdown
+const Inhi_options = ["No Inhibition Filter", "Low", "Average", "High"]
+d3.select("#Inhi_button")
+  .selectAll("Inhi Options")
+  .data(Inhi_options)
+  .enter()
+  .append("option")
+  .text(function (d) { return d; }) 
+  .attr("value", function (d) { return d; });
+
+d3.select("#Inhi_button").on("change", function(d){
+  selectedInhi = d3.select(this).property("value");
+
+  if (selectedInhi == "No Inhibition Filter") {
+    selectedInhi = "";
+  }; // get the selected HOO from the drop down
+  console.log("Inhi changed to ", selectedInhi)
+  filter();
+})
+
+// WM Dropdown
+const WM_options = ["No Working Memory Filter", "Low", "Average", "High"]
+d3.select("#WM_button")
+  .selectAll("WM Options")
+  .data(WM_options)
+  .enter()
+  .append("option")
+  .text(function (d) { return d; }) 
+  .attr("value", function (d) { return d; });
+
+  d3.select("#WM_button").on("change", function(d){
+    selectedWM = d3.select(this).property("value");
+  
+    if (selectedWM == "No Working Memory Filter") {
+      console.log("if true")
+      selectedWM = "";
+    }; // get the selected HOO from the drop down
+    console.log("Wm changed to ", selectedWM)
+    filter();
+  })
 
 const stimuli_R = [
   { src: "stimuli/3.png", x: middle_x + 150, y: height * .2 },
@@ -85,39 +165,79 @@ function add_stimuli(svg, stimuli){
       });
 
   }
-function getFiles(HOO) {
-  d3.select("#container").selectAll("*").remove();
-  console.log(HOO)
+
+var participantData = {}
+
+function getPIDs() {
+    // Read and create an object to store EF data
+    d3.csv("ace_data_levels.csv", d => ({
+      pid: d.pid,
+      inhibition: d.inhibition,
+      wm: d.wm
+    })).then(data => {
+      // Create a lookup table
+      data.forEach(d => {
+        participantData[d.pid] = {
+          inhibition: d.inhibition,
+          wm: d.wm
+        };
+      });
+  });
+  console.log(participantData)
+}
+
+function getFiles() {
+  console.log(selectedHOO)
+
+
 // Fetch all CSV files from the server
   fetch('/api/files')
   .then(res => res.json())
   .then(files => {
     console.log("got files")
     files.forEach((filename, i) => {
-      filter("R", "", "")
+      file_names.push(filename);
     });
+    filter();
   });
 }
 
-function filter(HOO, S, C) {
-  files.forEach(f, i => {
-    d3.csv(`AOI_hit/${filename}`, d => ({
-      timestamp: +d.timestamp,
-      x: +d.x * .4,
-      y: +d.y * .35,
-      Trackloss: d.Trackloss?.trim().toLowerCase(),
-      Hit_AOIs: d.Hit_AOIs ? d.Hit_AOIs.split(",").map(a => a.trim()) : [],
-      Problem_id: d.Problem_id,
-    })).then(data => {
-      const filtered = data.filter(d => d.Trackloss !== "missing" 
-        && d.Problem_id.includes(HOO, S, C));
-      if (i == 1) {
-        console.log(filtered);
-      }
-      renderChart(filtered, filename, HOO, i);
-    });
-    
+function filter() {
+  //console.log(file_names)
+  d3.select("#container").selectAll("*").remove();
+  file_names.forEach((filename, i) => {
+    console.log(file_names.length);
+    if (checkEF(filename)) {
+      d3.csv(`AOI_hit/${filename}`, d => ({
+        timestamp: +d.timestamp,
+        x: +d.x * .4,
+        y: +d.y * .35,
+        Trackloss: d.Trackloss?.trim().toLowerCase(),
+        Hit_AOIs: d.Hit_AOIs ? d.Hit_AOIs.split(",").map(a => a.trim()) : [],
+        Problem_id: d.Problem_id,
+      })).then(data => {
+        console.log(selectedS)
+        const filtered = data.filter(d => d.Trackloss !== "missing" 
+          && d.Problem_id.includes(selectedHOO, selectedS, selectedC));
+        renderChart(filtered, filename, selectedHOO, i);
+      });
+    } else { 
+      // Do nothing
+      } 
   });
+}
+
+function checkEF(filename) {
+  f_pid = filename.replace("_AOI_Hit.csv", "").toLowerCase().replace("_", "");
+  //console.log("pid ", f_pid)
+  const participant = participantData[f_pid]
+
+  if(participant) {
+    console.log(selectedInhi)
+    //console.log(participant.inhibition.includes(selectedInhi) && participant.wm.includes(selectedWM))
+    return (participant.inhibition.includes(selectedInhi) && participant.wm.includes(selectedWM))
+  }
+
 }
 
 
@@ -166,3 +286,6 @@ function renderChart(data, title, HOO, index) {
   add_stimuli(svg, HOO == "R" ? stimuli_R : stimuli_L);
 
 }
+
+getPIDs();
+getFiles();

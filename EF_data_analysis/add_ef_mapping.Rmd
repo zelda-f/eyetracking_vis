@@ -1,0 +1,73 @@
+```{r}
+library(dplyr)
+```
+
+### Load Data
+```{r}
+data <- read.csv("EF_data_analysis/ace_averaged_data.csv")
+data <- na.omit(data)
+
+```
+
+### Find the means
+```{r}
+inhi_mean <- mean(data$FLANKER.rcs.overall)
+wm_mean <- mean(data$BACKWARDSSPATIALSPAN.object_count_span.overall)
+
+inhi_mean
+wm_mean
+```
+
+### Find the SDs
+```{r}
+inhi_sd <- sd(data$FLANKER.rcs.overall)
+wm_sd <- sd(data$BACKWARDSSPATIALSPAN.object_count_span.overall)
+
+inhi_sd
+wm_sd
+```
+
+### Classify each participant's inhibition
+```{r}
+
+get_inhi <- function(x) {
+  if ( x > inhi_mean + inhi_sd) {
+    "High"
+  } else if ( x < inhi_mean - inhi_sd) {
+    "Low"
+  } else {
+    "Average"
+  }
+}
+
+data <- data %>%
+  mutate(inhibition = sapply(FLANKER.rcs.overall, get_inhi))
+
+head(data)
+```
+
+### Classify each participant's working memory
+```{r}
+get_wm <- function(x) {
+  if ( x > wm_mean + wm_sd) {
+    "High"
+  } else if ( x < wm_mean - wm_sd) {
+    "Low"
+  } else {
+    "Average"
+  }
+}
+
+data <- data %>%
+  mutate(wm = sapply(BACKWARDSSPATIALSPAN.object_count_span.overall, get_wm))
+
+head(data)
+
+```
+
+### write to a new CSV
+```{r}
+write.csv(data, "node/ace_data_levels.csv")
+
+```
+
